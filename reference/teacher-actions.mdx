@@ -1,0 +1,233 @@
+---
+title: "Teacher server actions reference"
+description: "Complete reference for teacher server actions in Proyecto Colegio: agregarDocente, actualizarDocente, borrarDocente, asignarCargaDocente, and importarDocentes."
+---
+
+These server actions manage teacher records in the `docentes` table and their academic load assignments in `seccion_docente_materia`. Each function is a Next.js Server Action that runs on the server, uses Prisma to interact with the database, and returns a plain `{ success, message }` object for use in the UI.
+
+## DocenteData interface
+
+The `agregarDocente` and `actualizarDocente` functions accept a data object matching the `DocenteData` interface:
+
+<ParamField body="cedula" type="string" required>
+  National ID number. Must be unique in the `docentes` table.
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Teacher's first name(s).
+</ParamField>
+
+<ParamField body="apellidos" type="string" required>
+  Teacher's last name(s).
+</ParamField>
+
+<ParamField body="fecha_nacimiento" type="string" required>
+  Date of birth in `YYYY-MM-DD` format. Converted to a UTC `Date` object internally.
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  Email address. Must be unique in the database.
+</ParamField>
+
+<ParamField body="fecha_ingreso" type="string" required>
+  Date the teacher joined the school, in `YYYY-MM-DD` format. Converted to a UTC `Date` object internally.
+</ParamField>
+
+<ParamField body="genero" type="string | null">
+  Gender. Optional.
+</ParamField>
+
+<ParamField body="telefono" type="string | null">
+  Contact phone number. Optional.
+</ParamField>
+
+<ParamField body="direccion" type="string | null">
+  Home address. Optional.
+</ParamField>
+
+<ParamField body="titulo_universitario" type="string | null">
+  University degree title. Optional.
+</ParamField>
+
+<ParamField body="especialidad" type="string | null">
+  Academic specialisation. Optional.
+</ParamField>
+
+<ParamField body="cargo" type="string | null">
+  Job title or position held at the school. Optional.
+</ParamField>
+
+<ParamField body="estado" type="string | null">
+  Employment status. Defaults to `"Activo"` when creating a new record.
+</ParamField>
+
+## Return type
+
+All functions return:
+
+```typescript
+{ success: boolean; message: string }
+```
+
+---
+
+## agregarDocente
+
+```typescript
+agregarDocente(data: DocenteData): Promise<{ success: boolean; message: string }>
+```
+
+Creates a new record in the `docentes` table. Validates that `cedula`, `nombre`, and `apellidos` are non-empty before writing to the database. On success, calls `revalidatePath('/gestion-docentes')`.
+
+### Parameters
+
+<ParamField body="data" type="DocenteData" required>
+  An object matching the DocenteData interface described above.
+</ParamField>
+
+### Error cases
+
+| Prisma code | Cause | Returned message |
+|---|---|---|
+| `P2002` | Duplicate `cedula` or `email` | `"Error: La cédula o el email ya existen."` |
+| Other | Unexpected server error | `"Error en el servidor."` |
+
+---
+
+## actualizarDocente
+
+```typescript
+actualizarDocente(id: number, data: DocenteData): Promise<{ success: boolean; message: string }>
+```
+
+Updates an existing teacher record identified by its numeric `id`. All writable fields are replaced with the values in `data`, so pass the complete teacher object.
+
+### Parameters
+
+<ParamField path="id" type="number" required>
+  The auto-incremented primary key of the teacher to update.
+</ParamField>
+
+<ParamField body="data" type="DocenteData" required>
+  Object with the new values. See the DocenteData interface above.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Teacher not found or other server error | `"Error en el servidor."` |
+
+---
+
+## borrarDocente
+
+```typescript
+borrarDocente(id: number): Promise<{ success: boolean; message: string }>
+```
+
+Permanently deletes the teacher record with the given `id`. Because the Prisma schema uses `onDelete: Cascade` on `seccion_docente_materia`, all academic load assignments for this teacher are also deleted automatically.
+
+### Parameters
+
+<ParamField path="id" type="number" required>
+  The auto-incremented primary key of the teacher to delete.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Teacher not found or other server error | `"Ocurrió un error al eliminar el docente."` |
+
+<Warning>
+  Deleting a teacher also removes all of their academic load assignments. This cannot be undone.
+</Warning>
+
+---
+
+## asignarCargaDocente
+
+```typescript
+asignarCargaDocente(
+  docenteId: number,
+  seccionId: number,
+  materiaId: string
+): Promise<{ success: boolean; message: string }>
+```
+
+Creates a new record in `seccion_docente_materia` linking a teacher, a section, and a subject. Before inserting, the function checks whether the same combination already exists and returns an error if it does.
+
+### Parameters
+
+<ParamField body="docenteId" type="number" required>
+  The `id` of the teacher to assign.
+</ParamField>
+
+<ParamField body="seccionId" type="number" required>
+  The `id_seccion` of the section where the teacher will teach.
+</ParamField>
+
+<ParamField body="materiaId" type="string" required>
+  The `id_materia` of the subject being assigned.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Assignment already exists for this teacher/section/subject | `"Esta materia ya está asignada a este docente en esta sección."` |
+| Other server error | `"Error en el servidor."` |
+
+---
+
+## importarDocentes
+
+```typescript
+importarDocentes(docentes: any[]): Promise<{ success: boolean; message: string }>
+```
+
+Bulk-inserts teachers from an array of raw row objects, typically parsed from an Excel or CSV file. Column header names are normalised (trimmed, lowercased, accents removed, spaces replaced with underscores) before mapping. Duplicate `cedula` or `email` values are silently skipped via `skipDuplicates`.
+
+Dates are accepted in Excel serial number format, `dd/MM/yyyy` text, or `yyyy-MM-dd` text.
+
+### Parameters
+
+<ParamField body="docentes" type="any[]" required>
+  Array of raw row objects. Each must contain at minimum `cedula`, `nombre` (or `nombres`), `apellidos`, `email` (or `correo_electronico`), `fecha_de_ingreso`, and `fecha_de_nacimiento`. Rows missing any required field are filtered out before the insert.
+</ParamField>
+
+### Expected column names (after normalisation)
+
+| Normalised key | Maps to |
+|---|---|
+| `cedula` | `cedula` |
+| `nombre` or `nombres` | `nombre` |
+| `apellidos` | `apellidos` |
+| `fecha_de_nacimiento` | `fecha_nacimiento` |
+| `email` or `correo_electronico` | `email` |
+| `fecha_de_ingreso` | `fecha_ingreso` |
+| `genero` | `genero` |
+| `telefono` | `telefono` |
+| `direccion` | `direccion` |
+| `titulo_universitario` | `titulo_universitario` |
+| `especialidad` | `especialidad` |
+| `cargo` | `cargo` |
+
+All imported teachers are assigned `estado = "Activo"` regardless of any column in the file.
+
+### Return value
+
+```
+"4 de 6 docentes importados con éxito."
+```
+
+The difference indicates rows that were skipped due to duplicate keys.
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Empty array | `"No se encontraron docentes para importar."` |
+| All rows missing required fields | `"Ninguna fila del Excel contenía los datos mínimos requeridos."` |
+| Unexpected server error | `"Ocurrió un error en el servidor."` |

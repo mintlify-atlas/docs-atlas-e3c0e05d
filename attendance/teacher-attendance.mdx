@@ -1,0 +1,47 @@
+---
+title: "Track daily and monthly teacher attendance records"
+description: "Record teacher attendance at the /asistencia-docentes route using the same status codes and data model shared with student attendance tracking."
+---
+
+The `/asistencia-docentes` page handles attendance for teachers (docentes). It works the same way as the student attendance module — you select a date, mark each teacher's status, and optionally add observations. The underlying database tables and status codes are identical, with the teacher's cedula serving as the identifier in `persona_cedula`.
+
+## How to record teacher attendance
+
+<Steps>
+  <Step title="Navigate to /asistencia-docentes">
+    Open the teacher attendance page. The page server-fetches all active teachers along with their subject assignments and the full attendance history before rendering.
+  </Step>
+  <Step title="Select a date">
+    Choose the date you want to register. As with student attendance, the date is stored in UTC to prevent time-zone drift.
+  </Step>
+  <Step title="Mark each teacher's status">
+    Set the attendance status for every teacher. The default is **A** (Absent). Update only the teachers whose status differs.
+  </Step>
+  <Step title="Save">
+    Saving writes the records through the same server action infrastructure used for students. All writes execute in a single database transaction.
+  </Step>
+</Steps>
+
+## Status codes
+
+Teacher attendance uses the same four status codes as student attendance:
+
+| Code | Meaning | Spanish term |
+|---|---|---|
+| `P` | Present | Presente |
+| `A` | Absent | Ausente |
+| `J` | Justified absence | Justificado |
+| `T` | Late | Tarde |
+
+## Data model
+
+Teacher attendance records are stored in the same two tables used for students:
+
+- **`asistencias_diarias`** — one row per teacher per day. The `persona_cedula` column holds the teacher's cedula, which maps to `docentes.cedula`.
+- **`asistencias_detalles`** — optional subject-level rows linked to a daily record. Useful when a teacher was absent only for certain periods.
+
+The unique constraint `UNIQUE (persona_cedula, fecha)` applies equally to teacher and student records, enforcing one row per person per day regardless of role.
+
+<Note>
+The same `asistencias_diarias` and `asistencias_detalles` tables store both student and teacher attendance. Records are differentiated by the value in `persona_cedula` — if it matches a cedula in the `estudiantes` table it is a student record; if it matches a cedula in the `docentes` table it is a teacher record. There is no separate role column in the attendance tables.
+</Note>

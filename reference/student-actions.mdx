@@ -1,0 +1,228 @@
+---
+title: "Student server actions reference"
+description: "Reference for all student server actions: agregarEstudiante, actualizarEstudiante, borrarEstudiante, asignarSeccionEstudiante, and importarEstudiantes."
+---
+
+These server actions manage student records in the `estudiantes` table. Each function runs on the server via Next.js Server Actions, interacts with the database through Prisma, and returns a plain object with `success` and `message` fields that you can use to display feedback in the UI.
+
+## EstudianteData interface
+
+The `agregarEstudiante` and `actualizarEstudiante` functions accept a data object that matches the `EstudianteData` interface:
+
+<ParamField body="cedula" type="string" required>
+  National ID number. Used as the primary key in the `estudiantes` table. Must be unique.
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Student's first name(s).
+</ParamField>
+
+<ParamField body="apellidos" type="string" required>
+  Student's last name(s).
+</ParamField>
+
+<ParamField body="fecha_nacimiento" type="string" required>
+  Date of birth in `YYYY-MM-DD` format. Converted internally to a UTC `Date` object before saving.
+</ParamField>
+
+<ParamField body="genero" type="string | null">
+  Gender. Optional. Pass `null` or omit to leave blank.
+</ParamField>
+
+<ParamField body="email" type="string | null">
+  Email address. Optional. Must be unique in the database if provided.
+</ParamField>
+
+<ParamField body="direccion" type="string | null">
+  Home address. Optional.
+</ParamField>
+
+<ParamField body="nombre_representante" type="string | null">
+  Full name of the student's legal guardian. Optional.
+</ParamField>
+
+<ParamField body="cedula_representante" type="string | null">
+  National ID of the legal guardian. Optional.
+</ParamField>
+
+<ParamField body="telefono" type="string | null">
+  Student's contact phone number. Optional.
+</ParamField>
+
+<ParamField body="telefono_representante" type="string | null">
+  Guardian's contact phone number. Optional.
+</ParamField>
+
+<ParamField body="seccion_actual_id" type="string | null">
+  ID of the section currently assigned to the student. Optional. Converted to an integer internally.
+</ParamField>
+
+<ParamField body="estado" type="string | null">
+  Enrollment status. Defaults to `"Activo"` if omitted.
+</ParamField>
+
+## Return type
+
+All functions in this module return an object with the following shape:
+
+```typescript
+{ success: boolean; message: string }
+```
+
+A `success: true` result means the database operation completed without errors. A `success: false` result means validation failed or an error was thrown.
+
+---
+
+## agregarEstudiante
+
+```typescript
+agregarEstudiante(data: EstudianteData): Promise<{ success: boolean; message: string }>
+```
+
+Creates a new record in the `estudiantes` table. After a successful insert the function calls `revalidatePath('/gestion-estudiantes')` so the student list refreshes automatically.
+
+### Parameters
+
+<ParamField body="data" type="EstudianteData" required>
+  An object matching the EstudianteData interface described above.
+</ParamField>
+
+### Error cases
+
+| Prisma code | Cause | Returned message |
+|---|---|---|
+| `P2002` | Duplicate `cedula` or `email` | `"Error: La cédula o el email ya existen."` |
+| Other | Unexpected server error | `"Ocurrió un error en el servidor."` |
+
+---
+
+## actualizarEstudiante
+
+```typescript
+actualizarEstudiante(cedula: string, data: EstudianteData): Promise<{ success: boolean; message: string }>
+```
+
+Updates an existing student record identified by `cedula`. All fields in `data` overwrite the stored values, so you should pass the full student object including any unchanged fields.
+
+### Parameters
+
+<ParamField path="cedula" type="string" required>
+  The national ID of the student to update. Must already exist in the database.
+</ParamField>
+
+<ParamField body="data" type="EstudianteData" required>
+  Object with the new values. See the EstudianteData interface above.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Student not found or other server error | `"Ocurrió un error en el servidor."` |
+
+---
+
+## borrarEstudiante
+
+```typescript
+borrarEstudiante(cedula: string): Promise<{ success: boolean; message: string }>
+```
+
+Permanently deletes the student record with the given `cedula`. This operation cannot be undone.
+
+### Parameters
+
+<ParamField path="cedula" type="string" required>
+  The national ID of the student to delete.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Student not found or other server error | `"Ocurrió un error al eliminar el estudiante."` |
+
+<Warning>
+  Deleting a student is irreversible. Make sure you have confirmed the action with the user before calling this function.
+</Warning>
+
+---
+
+## asignarSeccionEstudiante
+
+```typescript
+asignarSeccionEstudiante(estudianteId: string, seccionId: number | null): Promise<{ success: boolean; message: string }>
+```
+
+Updates only the `seccion_actual_id` field of a student record. Pass `null` as `seccionId` to remove the student from any section without deleting the record.
+
+### Parameters
+
+<ParamField path="estudianteId" type="string" required>
+  The `cedula` of the student whose section assignment you want to change.
+</ParamField>
+
+<ParamField body="seccionId" type="number | null" required>
+  The ID of the target section, or `null` to unassign the student from their current section.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Student not found or other server error | `"Error al asignar la sección."` |
+
+---
+
+## importarEstudiantes
+
+```typescript
+importarEstudiantes(estudiantes: any[]): Promise<{ success: boolean; message: string }>
+```
+
+Bulk-inserts students from an array of raw row objects, typically parsed from an Excel file. The function normalises column header names (trims whitespace, lowercases, removes accents, replaces spaces with underscores) before mapping them to database fields. Duplicate `cedula` values are silently skipped using Prisma's `skipDuplicates` option.
+
+Section assignment is resolved automatically: if a row contains an `año` column (e.g. `"1er Año"`) and a `seccion` column (e.g. `"A"`), the function looks up the matching section in the database and sets `seccion_actual_id` accordingly.
+
+Dates are accepted in Excel serial number format or as `dd/MM/yyyy` text strings.
+
+### Parameters
+
+<ParamField body="estudiantes" type="any[]" required>
+  Array of raw row objects from the parsed spreadsheet. Each object should contain at minimum `cedula`, `nombres`, `apellidos`, and `fecha_de_nacimiento` columns (case-insensitive, accents optional). Rows missing any of those four fields are filtered out before the insert.
+</ParamField>
+
+### Expected column names (after normalisation)
+
+| Normalised key | Maps to |
+|---|---|
+| `cedula` | `cedula` (PK) |
+| `nombres` | `nombre` |
+| `apellidos` | `apellidos` |
+| `fecha_de_nacimiento` | `fecha_nacimiento` |
+| `genero` | `genero` |
+| `direccion_de_correo_electronico` | `email` |
+| `telefono` | `telefono` |
+| `direccion` | `direccion` |
+| `nombres_del_representante` + `apellidos_del_representante` | `nombre_representante` (concatenated) |
+| `cedula_del_representante` | `cedula_representante` |
+| `telefono_del_representante` | `telefono_representante` |
+| `año` + `seccion` | `seccion_actual_id` (resolved via DB lookup) |
+
+### Return value
+
+On success the message reports how many rows were inserted out of how many were valid:
+
+```
+"3 de 5 estudiantes importados con éxito."
+```
+
+The count difference indicates rows that were skipped because their `cedula` already existed in the database.
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Empty array | `"No se encontraron estudiantes para importar."` |
+| All rows missing required fields | `"Ninguna fila del Excel contenía los datos mínimos requeridos (cédula, nombre, apellidos, fecha)."` |
+| Unexpected server error | `"Ocurrió un error en el servidor."` |

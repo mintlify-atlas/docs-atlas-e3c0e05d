@@ -1,0 +1,88 @@
+---
+title: "Deploy Proyecto Colegio on Vercel with hosted Postgres"
+description: "Connect your GitHub repository to Vercel, configure a hosted PostgreSQL database, and ship Proyecto Colegio to production in minutes."
+---
+
+Vercel is the recommended platform for deploying Proyecto Colegio. It integrates directly with GitHub and handles the Next.js build pipeline automatically. Because the app relies on PostgreSQL, you need a hosted database that Vercel can reach at build time and runtime.
+
+<Tip>
+[Neon](https://neon.tech) and [Supabase](https://supabase.com) both offer free-tier PostgreSQL hosting with connection strings that work out of the box with Vercel. Either is a reliable choice for a production deployment.
+</Tip>
+
+<Warning>
+Set the `DATABASE_URL` environment variable in your Vercel project settings **before** triggering your first deployment. The build command runs `prisma generate && next build`, which connects to the database during the build. The build will fail if `DATABASE_URL` is missing or incorrect.
+</Warning>
+
+## Deploy to Vercel
+
+<Steps>
+  <Step title="Provision a hosted PostgreSQL database">
+    Create a PostgreSQL database on your preferred provider and copy the connection string. The string follows this format:
+
+    ```bash
+    postgresql://USER:PASSWORD@HOST:5432/DATABASE_NAME
+    ```
+
+    If you are using Neon, the connection string is available in the **Connection Details** panel of your project dashboard. For Supabase, find it under **Project Settings → Database → Connection string (URI)**.
+  </Step>
+
+  <Step title="Connect your GitHub repository to Vercel">
+    1. Go to [vercel.com/new](https://vercel.com/new) and sign in with your GitHub account.
+    2. Select the `PROYECTO-COLEGIO` repository from the list.
+    3. Click **Import**.
+
+    Vercel auto-detects the Next.js framework and pre-fills the build settings. Do not change the framework preset.
+  </Step>
+
+  <Step title="Add the DATABASE_URL environment variable">
+    Before deploying, add your database connection string to the project:
+
+    1. In the Vercel import flow, expand the **Environment Variables** section.
+    2. Set the key to `DATABASE_URL` and paste your connection string as the value.
+    3. Make sure the variable is enabled for the **Production**, **Preview**, and **Development** environments.
+
+    If you have already imported the project, go to **Project Settings → Environment Variables** to add or update the value.
+  </Step>
+
+  <Step title="Verify the build configuration">
+    Vercel reads the `build` and `postinstall` scripts directly from `package.json`. No additional configuration is required:
+
+    ```json package.json
+    {
+      "scripts": {
+        "build": "prisma generate && next build",
+        "postinstall": "prisma generate"
+      }
+    }
+    ```
+
+    The `postinstall` hook ensures that the Prisma client is generated after each `npm install` on the Vercel build environment. The `build` script regenerates the client and compiles the Next.js application.
+  </Step>
+
+  <Step title="Push the schema to the production database">
+    Before or after your first deploy, run `db push` from your local machine to create the tables in your hosted database:
+
+    ```bash
+    npx prisma db push
+    ```
+
+    This command uses the `DATABASE_URL` in your local `.env` file, so point it to the production database string for this step.
+  </Step>
+
+  <Step title="Deploy">
+    Click **Deploy** in the Vercel import flow, or push a commit to your repository's default branch. Vercel starts a build, runs `npm install` (which triggers `postinstall`), then executes `prisma generate && next build`.
+
+    Once the build completes, Vercel provides a production URL where your application is live.
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Local development" icon="laptop-code" href="/quickstart">
+    Run Proyecto Colegio locally for development and testing.
+  </Card>
+  <Card title="Student management" icon="user-graduate" href="/students/overview">
+    Start managing student records and section assignments.
+  </Card>
+</CardGroup>

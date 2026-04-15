@@ -1,0 +1,72 @@
+---
+title: "Bulk import students from Excel"
+description: "Upload an Excel file to import multiple student records at once, with automatic section matching, date parsing, and duplicate skipping."
+---
+
+Instead of adding students one at a time, you can import a whole cohort from a single Excel file. The `/gestion-estudiantes` page includes an import option that reads your spreadsheet, normalizes the column headers, resolves section assignments against existing database records, parses dates in multiple formats, and writes all valid rows to the `estudiantes` table in one operation. Rows whose `cedula` already exists in the database are silently skipped.
+
+## Expected Excel columns
+
+Your spreadsheet must use the following column headers. Header matching is case-insensitive and accent-tolerant — the system strips accent marks and collapses extra spaces before comparing (see the note below).
+
+| Column header | Maps to | Required |
+|---|---|---|
+| `cedula` | `estudiantes.cedula` | **Yes** |
+| `nombres` | `estudiantes.nombre` | **Yes** |
+| `apellidos` | `estudiantes.apellidos` | **Yes** |
+| `fecha_de_nacimiento` | `estudiantes.fecha_nacimiento` | **Yes** |
+| `genero` | `estudiantes.genero` | No |
+| `direccion_de_correo_electronico` | `estudiantes.email` | No |
+| `telefono` | `estudiantes.telefono` | No |
+| `direccion` | `estudiantes.direccion` | No |
+| `nombres_del_representante` | `estudiantes.nombre_representante` (first part) | No |
+| `apellidos_del_representante` | `estudiantes.nombre_representante` (second part) | No |
+| `cedula_del_representante` | `estudiantes.cedula_representante` | No |
+| `telefono_del_representante` | `estudiantes.telefono_representante` | No |
+| `año` | Used to look up the grade level | No |
+| `seccion` | Used to look up the section letter | No |
+
+<Note>
+  Column headers are automatically normalized before matching: leading and trailing spaces are trimmed, all text is lowercased, internal spaces are replaced with underscores, and common Spanish accent marks (á, é, í, ó, ú) are removed. This means a header written as `"Dirección de Correo Electrónico"` in your spreadsheet is treated as `direccion_de_correo_electronico` and matched correctly.
+</Note>
+
+## Example Excel layout
+
+| cedula | nombres | apellidos | fecha_de_nacimiento | genero | año | seccion |
+|---|---|---|---|---|---|---|
+| 12345678 | María | Pérez González | 15/03/2010 | Femenino | 1er Año | A |
+
+## Date format support
+
+The `fecha_de_nacimiento` column accepts three date formats:
+
+- **Numeric Excel serial** — Excel's internal date number (e.g., `40179`). The importer converts it using the standard Excel epoch offset.
+- **`dd/MM/yyyy`** — for example, `15/03/2010`.
+- **`dd-MM-yyyy`** — for example, `15-03-2010`.
+
+All dates are stored as UTC midnight timestamps in the database.
+
+## How section assignment works during import
+
+When your spreadsheet includes both an `año` column and a `seccion` column, the importer tries to resolve them to an existing section record:
+
+1. It extracts the numeric grade level from the `año` value — for example, `"1er Año"` yields `1`.
+2. It uppercases the `seccion` letter — for example, `"a"` becomes `"A"`.
+3. It queries the `secciones` table for a row where `letra_seccion` matches that letter and the related `anios.nivel` matches that number.
+4. If a matching section is found, its `id_seccion` is stored in `seccion_actual_id` for the student. If no match is found, the field is left as `null` and the student is still imported without a section.
+
+<Warning>
+  The value in the `seccion` column must match a section letter that already exists in the system for the corresponding grade year. If the section does not exist, the student is imported without a section assignment and you must assign the section manually afterwards.
+</Warning>
+
+## Minimum required columns
+
+A row is considered valid only when it has non-empty values for all four required columns: `cedula`, `nombres`, `apellidos`, and `fecha_de_nacimiento`. Rows that fail this check are filtered out before the database write and are not counted in the success report.
+
+## Duplicate handling
+
+The import uses Prisma's `createMany` with `skipDuplicates: true`. Any row whose `cedula` already exists in the `estudiantes` table is silently skipped — it is not updated and it does not cause the entire import to fail. The system reports how many rows were actually inserted out of the total valid rows processed.
+
+<Tip>
+  Before importing, verify that your Excel file does not contain students who are already in the system. Any existing cedulas will be skipped without updating the stored data.
+</Tip>

@@ -1,0 +1,41 @@
+---
+title: "Configure and understand study plans per grade year"
+description: "Learn how study plans link subjects to grade years, and how teacher assignments build on that foundation to complete the academic structure."
+---
+
+A study plan (`planes_de_estudio`) is the record that formally declares which subjects are taught in a given grade year. It sits between the subject catalog and the grade year hierarchy, serving as the bridge that makes it possible to assign teachers to subjects within specific sections.
+
+<Note>
+Study plans are created automatically when you add a subject via `agregarMateria`. There is no separate interface for managing study plans directly — the system handles this transparently as part of the subject creation workflow.
+</Note>
+
+## Study plan fields
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | integer | Auto-incremented primary key. |
+| `anio_id` | integer | The grade year this plan belongs to. |
+| `materia_id` | string | The subject included in this plan. |
+| `horas_semanales` | integer | Optional number of weekly instructional hours. |
+
+The combination of `(anio_id, materia_id)` is unique: a subject can appear in a given grade year's study plan only once. Attempting to link the same subject to the same year twice will fail.
+
+## How study plans are created
+
+When you call `agregarMateria` with an `anio_id`, the action runs a transaction that creates both the subject and its study plan entry at the same time. If either step fails, neither record is saved. The result is that every subject in the system is always associated with at least one grade year from the moment it is created.
+
+## The full academic chain
+
+Study plans connect every layer of the academic structure into a single coherent graph:
+
+```
+anios → planes_de_estudio → materias → seccion_docente_materia → docentes
+```
+
+- **`anios`** define the grade levels.
+- **`planes_de_estudio`** declare which subjects belong to each level.
+- **`materias`** hold the subject definitions.
+- **`seccion_docente_materia`** assigns a specific teacher (`docente`) to a subject within a specific section, drawing on both the section (which belongs to a grade year) and the subject (which is in that year's study plan).
+- **`docentes`** are the teachers who carry out the teaching load.
+
+This chain ensures that a teacher can only be assigned to a subject that the grade year's study plan includes, keeping the academic structure consistent across all sections.

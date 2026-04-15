@@ -1,0 +1,73 @@
+---
+title: "Track daily and monthly student attendance records"
+description: "Record and review student attendance every day and month. Mark students as present, absent, justified, or late, with optional per-subject detail."
+---
+
+The `/asistencia-estudiantil` page is the main attendance module for students in Proyecto Colegio. It gives you two distinct views — a daily registration form and a monthly calendar grid — so you can capture attendance in real time and audit or correct past records without leaving the same interface.
+
+## Views
+
+### Daily registration (registro diario)
+
+Use the daily view to take attendance for a selected date. You can mark each student's overall status, add optional observations, and optionally break the attendance down to the subject level using per-subject detail entries (`detalle_materias`).
+
+<Steps>
+  <Step title="Select a date">
+    Choose the date you want to record attendance for. Dates are normalized to UTC internally to avoid time-zone inconsistencies.
+  </Step>
+  <Step title="Mark each student's status">
+    Set the attendance status for every student in the list. The default status is **A** (Absent) — you only need to change the students who were present, late, or have a justified absence.
+  </Step>
+  <Step title="Add observations (optional)">
+    Enter free-text observations for individual students when you need to capture context beyond the status code.
+  </Step>
+  <Step title="Add per-subject detail (optional)">
+    Expand a student's entry to record a separate status for each subject they attend that day. This populates the `asistencias_detalles` table and is useful when a student is present for some periods but absent for others.
+  </Step>
+  <Step title="Save">
+    Click save to commit the records. The server action runs all writes inside a single database transaction — if any record fails, the entire batch is rolled back.
+  </Step>
+</Steps>
+
+### Monthly review (registro mensual)
+
+The monthly view renders the full calendar month as a grid. Each cell shows the recorded status for a student on that day. You can click any cell to edit the entry inline and save a batch of changes at once using `guardarCambiosAsistencia`.
+
+## Status codes
+
+Every attendance record uses a single-character status code stored in the `status` column of `asistencias_diarias` (and `asistencias_detalles` for subject-level records).
+
+| Code | Meaning | Spanish term |
+|---|---|---|
+| `P` | Present | Presente |
+| `A` | Absent | Ausente |
+| `J` | Justified absence | Justificado |
+| `T` | Late | Tarde |
+
+The default status when no explicit selection is made is **A** (Absent).
+
+## Data model
+
+Student attendance is stored across two tables:
+
+- **`asistencias_diarias`** — one row per student per day. Holds the overall status, an optional observation, and the student's cedula (`persona_cedula`).
+- **`asistencias_detalles`** — one row per subject per day per student. Linked to `asistencias_diarias` via `asistencia_diaria_id`. Holds a per-subject status and optional observation.
+
+A unique constraint on `asistencias_diarias` enforces exactly one record per student per day:
+
+```sql
+UNIQUE (persona_cedula, fecha)
+```
+
+## Server actions
+
+| Action | Used by | Description |
+|---|---|---|
+| `guardarAsistenciaDiaria` | Daily registration view | Upserts the daily record and replaces all subject-level details in a transaction |
+| `guardarCambiosAsistencia` | Monthly review | Saves a batch of edited entries from the calendar grid |
+
+Both actions use the same write pattern: upsert the `asistencias_diarias` row, then delete and recreate the `asistencias_detalles` rows for that day.
+
+<Note>
+Saving attendance replaces **all** existing subject-level detail records for that day. The server action deletes every row in `asistencias_detalles` linked to the daily record and then inserts fresh rows from the submitted data. This delete-and-recreate pattern runs inside a Prisma transaction, so partial writes cannot occur.
+</Note>

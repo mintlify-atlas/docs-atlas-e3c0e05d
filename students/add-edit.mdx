@@ -1,0 +1,72 @@
+---
+title: "Add and edit student records"
+description: "Create new student records or update existing ones, with guidance on required fields, optional data, and unique-constraint error handling."
+---
+
+The student management page lets you add individual students through a form and edit any existing record at any time. When you add a student, the system calls the `agregarEstudiante` server action, which writes the new row to the `estudiantes` table. When you edit a student, the `actualizarEstudiante` action updates every editable field on that row, identified by the student's `cedula`.
+
+## Field reference
+
+The table below lists every field on the student form, its data type, and whether it is required.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `cedula` | `String` | **Yes** | National ID number. Primary key — must be unique. |
+| `nombre` | `String` | **Yes** | Student first name(s). |
+| `apellidos` | `String` | **Yes** | Student last name(s). |
+| `fecha_nacimiento` | `Date` | **Yes** | Date of birth. Stored as a UTC midnight timestamp. |
+| `genero` | `String` | No | Gender. Free-text field. |
+| `email` | `String` | No | Email address. Must be unique if provided. |
+| `direccion` | `String` | No | Home address. |
+| `telefono` | `String` | No | Student phone number. |
+| `nombre_representante` | `String` | No | Guardian full name. |
+| `cedula_representante` | `String` | No | Guardian national ID. |
+| `telefono_representante` | `String` | No | Guardian phone number. |
+| `seccion_actual_id` | `Int` | No | ID of the class section. Links to `secciones.id_seccion`. |
+| `estado` | `String` | No | Defaults to `"Activo"` when not supplied. |
+
+## Add a new student
+
+<Steps>
+  <Step title="Open the add student form">
+    On the `/gestion-estudiantes` page, click the button to add a new student. A form panel opens.
+  </Step>
+  <Step title="Fill in the required fields">
+    Enter values for `cedula`, `nombre`, `apellidos`, and `fecha_nacimiento`. These four fields must not be empty.
+  </Step>
+  <Step title="Fill in optional fields">
+    Add any combination of the optional fields — contact details, guardian information, gender, address, and section assignment — as needed.
+  </Step>
+  <Step title="Submit the form">
+    Submit the form to call `agregarEstudiante`. On success, the student list refreshes automatically. If the operation fails, you will see an error message.
+  </Step>
+</Steps>
+
+## Edit an existing student
+
+<Steps>
+  <Step title="Locate the student">
+    Find the student in the roster on `/gestion-estudiantes`.
+  </Step>
+  <Step title="Open the edit form">
+    Click the edit action for that student row. The form pre-fills with the student's current data.
+  </Step>
+  <Step title="Update the fields">
+    Change any field values. All fields are editable except `cedula`, which is the primary key and identifies the record.
+  </Step>
+  <Step title="Save changes">
+    Submit the form to call `actualizarEstudiante`. The page revalidates and reflects the updated data immediately.
+  </Step>
+</Steps>
+
+## Unique-constraint errors
+
+Two fields in the `estudiantes` table carry unique constraints: `cedula` and `email`. If you attempt to save a student whose `cedula` or `email` already exists in the database, Prisma raises error code **P2002**. The system catches this error and returns the message:
+
+> `Error: La cédula o el email ya existen.`
+
+When you see this message, verify that neither the cedula nor the email address you entered belongs to another student record.
+
+<Note>
+  The `estado` field defaults to `"Activo"` when you create a new record and when you save an edit without supplying a value for that field. You can set it to any string, but `"Activo"` and `"Inactivo"` are the standard values used in the system.
+</Note>

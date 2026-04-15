@@ -1,0 +1,72 @@
+---
+title: "Assign students to sections"
+description: "Learn how to assign a student to a class section, remove an existing assignment, and understand how sections relate to grade years and school periods."
+---
+
+A **section** (`secciones`) is a specific class group within an academic year. Each section belongs to a grade year (`anios`), carries a school period string (for example, `"2024-2025"`), and is identified by a single letter such as `"A"` or `"B"`. Assigning a student to a section tells the system which class group that student belongs to for the current school year, enabling attendance tracking and schedule lookups.
+
+## What a section contains
+
+The `secciones` table stores the following information about each section:
+
+| Field | Description |
+|---|---|
+| `id_seccion` | Auto-incremented primary key. |
+| `periodo_escolar` | School year string (e.g., `"2024-2025"`). |
+| `anio_id` | Foreign key to `anios.id_anio`. Identifies the grade year. |
+| `letra_seccion` | Single character identifying the section (e.g., `"A"`). |
+| `docente_guia_id` | Optional. The homeroom teacher assigned to this section. |
+| `aula_asignada` | Optional. The classroom identifier. |
+| `estado` | Defaults to `"Activa"`. |
+
+A section is uniquely identified by the combination of `periodo_escolar`, `anio_id`, and `letra_seccion`. The related `anios` record provides the grade level number (`nivel`) and the grade name (`nombre`, for example `"1er Año"`).
+
+## How to assign a section through the UI
+
+<Steps>
+  <Step title="Find the student">
+    Navigate to `/gestion-estudiantes` and locate the student you want to assign.
+  </Step>
+  <Step title="Open the section assignment control">
+    Click the section assignment action for that student. A dropdown or selector appears, listing all available sections from the `secciones` table.
+  </Step>
+  <Step title="Select the target section">
+    Choose the section that corresponds to the student's current grade year and section letter.
+  </Step>
+  <Step title="Save the assignment">
+    Confirm your selection. The system calls `asignarSeccionEstudiante` with the student's `cedula` and the selected `seccionId`. The page revalidates and the new section appears in the student list.
+  </Step>
+</Steps>
+
+## The asignarSeccionEstudiante action
+
+The `asignarSeccionEstudiante` server action accepts two parameters:
+
+| Parameter | Type | Description |
+|---|---|---|
+| `estudianteId` | `string` | The student's `cedula`. Used to identify the record in the database. |
+| `seccionId` | `number \| null` | The `id_seccion` of the target section, or `null` to remove the assignment. |
+
+The action performs a Prisma `update` on the `estudiantes` table, setting `seccion_actual_id` to the provided value. It then revalidates the `/gestion-estudiantes` path so the UI reflects the change immediately.
+
+## Removing a section assignment
+
+To remove a student's current section assignment, pass `null` as the `seccionId`. This sets `seccion_actual_id` to `null` in the database, effectively un-enrolling the student from any section without deleting the student record.
+
+<Note>
+  A student can only belong to one section at a time. The `seccion_actual_id` field is a single foreign key — assigning a new section automatically replaces the previous one. There is no history of past section assignments stored on the student record itself.
+</Note>
+
+## How sections relate to academic years
+
+Each section is linked to an `anios` record through `anio_id`. The `anios` model stores:
+
+- `nivel` — an integer representing the grade number (e.g., `1` for first year).
+- `nombre` — a human-readable label (e.g., `"1er Año"`).
+- `docente_coordinador_id` — an optional reference to the year's coordinating teacher.
+
+When the student management page loads, it fetches each student with their section and the section's related year using a nested `include`. This allows the UI to display the full label — for example, `"1er Año, Sección A"` — alongside the student's name without additional queries.
+
+<Tip>
+  Make sure the target section exists in the system before attempting to assign a student to it. Sections must be created in the academic management area first.
+</Tip>

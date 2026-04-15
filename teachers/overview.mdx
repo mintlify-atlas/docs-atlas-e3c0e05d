@@ -1,0 +1,45 @@
+---
+title: "Teacher management overview for the Proyecto Colegio app"
+description: "Explore the teacher management module: view, register, edit, bulk-import, and assign academic loads to teachers across sections and subjects."
+---
+
+The `/gestion-docentes` page is your central hub for managing every teacher in the system. From here you can view the full teacher roster, register new staff, update existing records, bulk-import from Excel, and assign each teacher their academic load—the combination of sections and subjects they are responsible for teaching.
+
+## Data stored per teacher
+
+Each teacher record in the `docentes` table holds the following fields:
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | Integer | Auto-incremented primary key |
+| `nombre` | String (100) | First name |
+| `apellidos` | String (100) | Last name(s) |
+| `cedula` | String (15) | National ID — must be unique |
+| `fecha_nacimiento` | Date | Date of birth |
+| `genero` | String (20) | Optional |
+| `email` | String (255) | Must be unique |
+| `telefono` | String (20) | Optional |
+| `direccion` | Text | Optional |
+| `titulo_universitario` | String (255) | Optional |
+| `especialidad` | String (255) | Optional |
+| `fecha_ingreso` | Date | Date the teacher joined |
+| `cargo` | String (100) | Job title — optional |
+| `estado` | String (20) | Defaults to `"Activo"` |
+
+## Academic load
+
+A teacher's academic load defines which subjects they teach and in which sections. The `seccion_docente_materia` join table links a teacher (`docente_id`), a section (`seccion_id`), and a subject (`materia_id`). Each subject in a section can have at most one assigned teacher, enforced by a unique constraint on `(seccion_id, materia_id)`.
+
+## Related pages
+
+<CardGroup cols={2}>
+  <Card title="Add and edit teachers" icon="pen-to-square" href="/teachers/add-edit">
+    Register new teachers or update existing records.
+  </Card>
+  <Card title="Bulk import from Excel" icon="file-excel" href="/teachers/import">
+    Import multiple teacher records from a spreadsheet.
+  </Card>
+  <Card title="Assign academic loads" icon="chalkboard-teacher" href="/teachers/academic-load">
+    Link teachers to the sections and subjects they teach.
+  </Card>
+</CardGroup>

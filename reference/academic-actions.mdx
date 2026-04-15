@@ -1,0 +1,278 @@
+---
+title: "Academic structure server actions"
+description: "Reference for server actions managing academic years, sections, subjects, study plans, and teacher-section load assignments in Proyecto Colegio."
+---
+
+These server actions manage the core academic structure of the school: grade years (`anios`), classroom sections (`secciones`), subjects (`materias`), study plans (`planes_de_estudio`), and teacher-section-subject assignments (`seccion_docente_materia`). All functions accept `FormData` objects or typed arguments, run on the server via Next.js Server Actions, and return `{ success: boolean; message: string }`.
+
+## Return type
+
+Every function in this module returns:
+
+```typescript
+{ success: boolean; message: string }
+```
+
+---
+
+## agregarAnio
+
+```typescript
+agregarAnio(formData: FormData): Promise<{ success: boolean; message: string }>
+```
+
+Creates a new academic year (grade level) in the `anios` table. Use this to add entries such as "1er Año" or "5to Año" before creating sections or assigning subjects.
+
+### Parameters
+
+<ParamField body="nivel" type="integer" required>
+  Numeric grade level (e.g. `1`, `2`, `3`). Must be unique across all years.
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Display name for the year (e.g. `"1er Año"`). Max 50 characters. Must be unique.
+</ParamField>
+
+### Error cases
+
+| Prisma code | Cause | Returned message |
+|---|---|---|
+| `P2002` | Duplicate `nivel` or `nombre` | `"Error: El nivel o nombre del año ya existe."` |
+| Other | Unexpected server error | `"Error en el servidor."` |
+
+---
+
+## agregarSeccion
+
+```typescript
+agregarSeccion(formData: FormData): Promise<{ success: boolean; message: string }>
+```
+
+Creates a new section in the `secciones` table. The `letra_seccion` value is stored in uppercase regardless of the input case. The combination of `periodo_escolar`, `anio_id`, and `letra_seccion` must be unique.
+
+### Parameters
+
+<ParamField body="letra_seccion" type="string" required>
+  Single letter identifying the section (e.g. `"A"`, `"B"`). Stored as uppercase.
+</ParamField>
+
+<ParamField body="periodo_escolar" type="string" required>
+  School year period (e.g. `"2024-2025"`). Max 10 characters.
+</ParamField>
+
+<ParamField body="anio_id" type="integer" required>
+  The `id_anio` of the academic year this section belongs to.
+</ParamField>
+
+<ParamField body="docente_guia_id" type="integer">
+  Optional. The `id` of the homeroom teacher (`docentes.id`). If omitted or empty, stored as `null`.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Missing required field | `"Todos los campos son obligatorios."` |
+| Other server error | `"Error en el servidor."` |
+
+---
+
+## actualizarSeccion
+
+```typescript
+actualizarSeccion(id: number, formData: FormData): Promise<{ success: boolean; message: string }>
+```
+
+Updates an existing section identified by its primary key. Accepts the same `FormData` fields as `agregarSeccion`.
+
+### Parameters
+
+<ParamField path="id" type="number" required>
+  The `id_seccion` of the section to update.
+</ParamField>
+
+<ParamField body="letra_seccion" type="string" required>
+  New section letter. Stored as uppercase.
+</ParamField>
+
+<ParamField body="periodo_escolar" type="string" required>
+  New school year period.
+</ParamField>
+
+<ParamField body="anio_id" type="integer" required>
+  New academic year ID.
+</ParamField>
+
+<ParamField body="docente_guia_id" type="integer">
+  New homeroom teacher ID, or empty to clear the assignment.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Missing required field | `"Todos los campos son obligatorios."` |
+| Other server error | `"Error en el servidor."` |
+
+---
+
+## agregarMateria
+
+```typescript
+agregarMateria(formData: FormData): Promise<{ success: boolean; message: string }>
+```
+
+Creates a new subject in the `materias` table and simultaneously creates the corresponding entry in `planes_de_estudio` that links it to a specific academic year. Both operations run inside a single Prisma transaction, so either both succeed or neither does.
+
+### Parameters
+
+<ParamField body="id_materia" type="string" required>
+  A short code that uniquely identifies the subject (e.g. `"MAT-101"`). Max 15 characters. Used as the primary key.
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Full display name of the subject (e.g. `"Matemáticas"`). Max 100 characters.
+</ParamField>
+
+<ParamField body="anio_id" type="integer" required>
+  The `id_anio` of the academic year this subject belongs to. Creates the `planes_de_estudio` relationship.
+</ParamField>
+
+<ParamField body="nombre_corto" type="string">
+  Optional abbreviation (e.g. `"MAT"`). Max 20 characters.
+</ParamField>
+
+<ParamField body="area_conocimiento" type="string">
+  Optional knowledge area (e.g. `"Ciencias Exactas"`). Max 50 characters.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Optional free-text description of the subject.
+</ParamField>
+
+### Error cases
+
+| Prisma code | Cause | Returned message |
+|---|---|---|
+| `P2002` | Duplicate `id_materia` | `"Error: El código de la materia ya existe."` |
+| Other | Unexpected server error | `"Error en el servidor."` |
+
+---
+
+## actualizarMateria
+
+```typescript
+actualizarMateria(id: string, formData: FormData): Promise<{ success: boolean; message: string }>
+```
+
+Updates the name and optional metadata of an existing subject. The `id_materia` primary key and `planes_de_estudio` relationships are not modified.
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The `id_materia` (code) of the subject to update.
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  New display name for the subject.
+</ParamField>
+
+<ParamField body="nombre_corto" type="string">
+  New abbreviation. Pass an empty string or omit to clear.
+</ParamField>
+
+<ParamField body="area_conocimiento" type="string">
+  New knowledge area. Pass an empty string or omit to clear.
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  New description. Pass an empty string or omit to clear.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| `nombre` is empty | `"El nombre es obligatorio."` |
+| Other server error | `"Error en el servidor."` |
+
+---
+
+## asignarCarga
+
+```typescript
+asignarCarga(formData: FormData): Promise<{ success: boolean; message: string }>
+```
+
+Creates a new record in `seccion_docente_materia` linking a teacher, a section, and a subject. Before inserting, the function checks whether the same `seccion_id` / `materia_id` pair already has an assignment and returns an error if it does, enforcing that each subject in a section has at most one assigned teacher.
+
+### Parameters
+
+<ParamField body="docente_id" type="integer" required>
+  The `id` of the teacher to assign.
+</ParamField>
+
+<ParamField body="seccion_id" type="integer" required>
+  The `id_seccion` of the target section.
+</ParamField>
+
+<ParamField body="materia_id" type="string" required>
+  The `id_materia` of the subject being assigned.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Missing any field | `"Debe seleccionar un docente, sección y materia."` |
+| Subject already has a teacher in this section | `"Error: Esta materia ya tiene un docente asignado en esta sección."` |
+| Other server error | `"Error en el servidor."` |
+
+---
+
+## removerCarga
+
+```typescript
+removerCarga(id: number): Promise<{ success: boolean; message: string }>
+```
+
+Deletes a single `seccion_docente_materia` record by its primary key, removing the teacher's assignment for that subject and section.
+
+### Parameters
+
+<ParamField path="id" type="number" required>
+  The `id` of the `seccion_docente_materia` record to delete.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Record not found or other server error | `"Error en el servidor."` |
+
+---
+
+## borrarMateria
+
+```typescript
+borrarMateria(id: string): Promise<{ success: boolean; message: string }>
+```
+
+Deletes a subject from the `materias` table by its code. The deletion will fail if the subject is still referenced in any `planes_de_estudio` or `seccion_docente_materia` record.
+
+### Parameters
+
+<ParamField path="id" type="string" required>
+  The `id_materia` (code) of the subject to delete.
+</ParamField>
+
+### Error cases
+
+| Prisma code | Cause | Returned message |
+|---|---|---|
+| `P2003` | Subject is still referenced by a study plan or assignment | `"Error: No se puede eliminar la materia porque está en uso en un plan de estudios o asignación."` |
+| Other | Unexpected server error | `"Ocurrió un error al eliminar la materia."` |
+
+<Warning>
+  You must remove all `planes_de_estudio` entries and teacher assignments for a subject before you can delete it.
+</Warning>

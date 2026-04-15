@@ -1,0 +1,165 @@
+---
+title: "Attendance server actions reference"
+description: "Reference for the two attendance server actions: guardarAsistenciaDiaria for daily entry and guardarCambiosAsistencia for batch monthly edits."
+---
+
+These server actions write attendance data to the database. `guardarAsistenciaDiaria` is used by the daily attendance entry view, while `guardarCambiosAsistencia` handles bulk edits made from the monthly attendance calendar. Both run inside a Prisma transaction so that all changes are atomic — either every record in the batch is saved or none of them are.
+
+## Return type
+
+Both functions return:
+
+```typescript
+{ success: boolean; message: string }
+```
+
+---
+
+## guardarAsistenciaDiaria
+
+```typescript
+guardarAsistenciaDiaria(
+  fecha: Date,
+  datosAsistencia: AsistenciaDiaria[]
+): Promise<{ success: boolean; message: string }>
+```
+
+Saves or updates the attendance record for an entire group of students on a single date. For each student the function upserts one row in `asistencias_diarias` (keyed on `persona_cedula + fecha`), deletes any existing per-subject rows in `asistencias_detalles` for that day, and recreates them from the `detalle_materias` array. All writes happen in a single transaction.
+
+### Parameters
+
+<ParamField body="fecha" type="Date" required>
+  The date for which attendance is being recorded. The function normalises it to UTC midnight (`Date.UTC`) before saving to avoid timezone drift.
+</ParamField>
+
+<ParamField body="datosAsistencia" type="AsistenciaDiaria[]" required>
+  Array of attendance objects, one per student. See the `AsistenciaDiaria` type below.
+</ParamField>
+
+### AsistenciaDiaria type
+
+<ParamField body="id" type="string" required>
+  The student's `cedula` (national ID). Used as `persona_cedula` in `asistencias_diarias`.
+</ParamField>
+
+<ParamField body="presente" type="boolean" required>
+  Whether the student was present. Sets status to `"P"`, but is overridden if `justificado` or `tarde` is also true.
+</ParamField>
+
+<ParamField body="justificado" type="boolean" required>
+  Whether the absence is justified. Sets status to `"J"`, overriding `presente`. Can itself be overridden by `tarde`.
+</ParamField>
+
+<ParamField body="tarde" type="boolean" required>
+  Whether the student arrived late. Sets status to `"T"`. This flag takes final precedence over both `presente` and `justificado`.
+</ParamField>
+
+<ParamField body="observaciones" type="string" required>
+  General note for the day stored in `asistencias_diarias.observacion`.
+</ParamField>
+
+<ParamField body="detalle_materias" type="DetalleMateriaDiaria[]" required>
+  Per-subject attendance details. May be an empty array if no subject-level tracking is needed.
+</ParamField>
+
+### Status derivation
+
+The three boolean flags are evaluated sequentially using simple `if` statements (not `else if`), so later checks override earlier ones. The final stored status is determined by the last flag that evaluates to `true`:
+
+```typescript
+let status = 'A'; // default: absent
+if (item.presente) status = 'P';
+if (item.justificado) status = 'J'; // overrides presente
+if (item.tarde) status = 'T';       // overrides justificado and presente
+```
+
+| Final status | Condition |
+|---|---|
+| `"A"` | None of the flags are true (default) |
+| `"P"` | `presente` is true, and neither `justificado` nor `tarde` is true |
+| `"J"` | `justificado` is true and `tarde` is false |
+| `"T"` | `tarde` is true (highest precedence — overrides all others) |
+
+### DetalleMateriaDiaria type
+
+<ParamField body="materia_id" type="string" required>
+  The `id_materia` of the subject (e.g. `"MAT-101"`).
+</ParamField>
+
+<ParamField body="status" type="string" required>
+  Attendance status for this subject. Must be one of `"P"` (present), `"A"` (absent), `"J"` (justified), or `"T"` (late).
+</ParamField>
+
+<ParamField body="observacion" type="string" required>
+  Subject-specific observation. Pass an empty string if there is no note.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Transaction error or other server error | `"Ocurrió un error al guardar."` |
+
+---
+
+## guardarCambiosAsistencia
+
+```typescript
+guardarCambiosAsistencia(
+  cambios: CambioAsistencia[]
+): Promise<{ success: boolean; message: string }>
+```
+
+Applies a batch of attendance changes, typically collected from the monthly calendar view where a teacher edits multiple days at once. The logic is the same as `guardarAsistenciaDiaria`: each item in the array upserts a row in `asistencias_diarias` and replaces the corresponding `asistencias_detalles` records. All changes run in a single transaction.
+
+### Parameters
+
+<ParamField body="cambios" type="CambioAsistencia[]" required>
+  Array of change objects to persist. Each entry represents one student on one date. See the `CambioAsistencia` type below.
+</ParamField>
+
+### CambioAsistencia type
+
+<ParamField body="cedula" type="string" required>
+  The student's national ID (`persona_cedula`).
+</ParamField>
+
+<ParamField body="fecha" type="string" required>
+  The date of the attendance record in `yyyy-MM-dd` format. Converted to a UTC `Date` object internally.
+</ParamField>
+
+<ParamField body="status" type="string" required>
+  Attendance status for the day. Must be one of `"P"`, `"A"`, `"J"`, or `"T"`.
+</ParamField>
+
+<ParamField body="observacion" type="string" required>
+  General observation for the day. Pass an empty string if none.
+</ParamField>
+
+<ParamField body="detalles" type="DetalleMateriaMensual[]" required>
+  Per-subject attendance details for this day. May be an empty array.
+</ParamField>
+
+### DetalleMateriaMensual type
+
+<ParamField body="materia_id" type="string" required>
+  The `id_materia` of the subject.
+</ParamField>
+
+<ParamField body="status" type="string" required>
+  Status for this subject: `"P"`, `"A"`, `"J"`, or `"T"`.
+</ParamField>
+
+<ParamField body="observacion" type="string" required>
+  Subject-specific observation. Pass an empty string if none.
+</ParamField>
+
+### Error cases
+
+| Cause | Returned message |
+|---|---|
+| Transaction error or other server error | `"Error al guardar cambios."` |
+
+<Note>
+  Because `guardarCambiosAsistencia` uses `upsert`, you can safely call it with changes for dates that already have attendance records — existing data will be updated rather than duplicated.
+</Note>

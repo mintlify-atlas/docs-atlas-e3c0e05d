@@ -1,0 +1,81 @@
+---
+title: "How to bulk import teacher records from an Excel file"
+description: "Upload an Excel file to import multiple teacher records at once. Learn the expected columns, supported date formats, and how duplicate rows are handled."
+---
+
+Instead of registering teachers one by one, you can upload an Excel spreadsheet to import an entire batch in a single operation. The system reads each row, normalizes the column headers, parses dates, and inserts the valid records into the `docentes` table using Prisma's `createMany` with `skipDuplicates: true`.
+
+## Expected column layout
+
+Your spreadsheet should contain the following columns. Column header names are flexible — the import process strips accent marks and extra spaces before matching them, so minor variations are accepted.
+
+| Column header | Accepted alternatives | Required |
+|---|---|---|
+| `cedula` | — | Yes |
+| `nombre` | `nombres` | Yes |
+| `apellidos` | — | Yes |
+| `email` | `correo_electronico` | Yes |
+| `fecha_de_nacimiento` | — | Yes |
+| `fecha_de_ingreso` | — | Yes |
+| `genero` | — | No |
+| `telefono` | — | No |
+| `direccion` | — | No |
+| `titulo_universitario` | — | No |
+| `especialidad` | — | No |
+| `cargo` | — | No |
+
+<Note>
+  The importer uses flexible header matching. `nombre` and `nombres` are treated as the same field, and `email` and `correo_electronico` are interchangeable. Accent marks (e.g., `Cédula` → `cedula`) and leading or trailing spaces in header names are cleaned automatically before matching, so most reasonable variations in your spreadsheet will be recognized.
+</Note>
+
+## Date formats
+
+The following date formats are all supported for `fecha_de_nacimiento` and `fecha_de_ingreso`:
+
+- **Numeric Excel serial** — Excel's internal date number (e.g., `45123`)
+- **`dd/MM/yyyy`** — e.g., `15/03/1985`
+- **`yyyy-MM-dd`** — e.g., `1985-03-15`
+
+The parser detects the format automatically. If the first numeric segment is greater than 31 it assumes `yyyy-MM-dd`; otherwise it assumes `dd/MM/yyyy`.
+
+## Minimum required data
+
+A row is only imported if all six required fields contain values after header normalization:
+
+- `cedula`
+- `nombre` or `nombres`
+- `apellidos`
+- `email` or `correo_electronico`
+- `fecha_de_nacimiento`
+- `fecha_de_ingreso`
+
+Rows that are missing any of these fields are silently skipped. The response message reports how many records were actually inserted out of how many were considered valid.
+
+## Duplicate handling
+
+The import uses `skipDuplicates: true`. If a row's `cedula` or `email` already exists in the database, that row is skipped without raising an error. The rest of the valid rows in the file are still imported.
+
+## Estado on import
+
+Every teacher created through the bulk import is assigned `estado = "Activo"` regardless of any value in the spreadsheet. There is no column for `estado` in the import file.
+
+## How to import
+
+<Steps>
+  <Step title="Prepare your spreadsheet">
+    Create an Excel file with the column headers listed above. Ensure every row has at least the six required fields filled in.
+  </Step>
+  <Step title="Open the import dialog">
+    On the `/gestion-docentes` page, click the import button to open the file upload dialog.
+  </Step>
+  <Step title="Upload the file">
+    Select your `.xlsx` file. The system parses each row, normalizes headers, and filters out incomplete rows.
+  </Step>
+  <Step title="Review the result">
+    After the upload completes, a message shows how many teachers were imported (e.g., `"8 de 10 docentes importados con éxito."`). Records skipped due to duplicates or missing data are not counted.
+  </Step>
+</Steps>
+
+<Warning>
+  Rows with duplicate `cedula` or `email` values are silently skipped. If you expect a record to be imported but it does not appear in the list, verify that neither its `cedula` nor its `email` is already registered in the system.
+</Warning>

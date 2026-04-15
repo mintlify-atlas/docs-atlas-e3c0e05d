@@ -1,0 +1,115 @@
+{
+  "projectType": "saas",
+  "projectName": "Proyecto Colegio",
+  "projectDescription": "A full-stack school management system for managing students, teachers, academic structure, and attendance records.",
+  "theme": "almond",
+  "primaryColor": "#7c7c7c",
+  "lightColor": "#080808",
+  "darkColor": "#c1c1c1",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "deployment"
+            ]
+          },
+          {
+            "group": "Student Management",
+            "pages": [
+              "students/overview",
+              "students/add-edit",
+              "students/import",
+              "students/section-assignment"
+            ]
+          },
+          {
+            "group": "Teacher Management",
+            "pages": [
+              "teachers/overview",
+              "teachers/add-edit",
+              "teachers/import",
+              "teachers/academic-load"
+            ]
+          },
+          {
+            "group": "Academic Structure",
+            "pages": [
+              "academics/overview",
+              "academics/years-sections",
+              "academics/subjects",
+              "academics/study-plans"
+            ]
+          },
+          {
+            "group": "Attendance",
+            "pages": [
+              "attendance/student-attendance",
+              "attendance/teacher-attendance",
+              "attendance/reports"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Server Actions",
+            "pages": [
+              "reference/student-actions",
+              "reference/teacher-actions",
+              "reference/academic-actions",
+              "reference/attendance-actions"
+            ]
+          },
+          {
+            "group": "Data Model",
+            "pages": [
+              "reference/database-schema",
+              "reference/configuration"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Student registration with representative contact info and section assignment",
+    "Teacher registration with academic credentials and load assignment",
+    "Academic year and section management with guide teacher assignment",
+    "Subject catalog and study plan configuration per grade level",
+    "Daily and monthly student attendance tracking with per-subject detail",
+    "Teacher attendance recording",
+    "Bulk import of students and teachers from Excel files",
+    "PDF and Excel export of reports",
+    "Real-time data updates using Next.js Server Actions and cache revalidation"
+  ],
+  "publicApiSurface": [
+    "agregarEstudiante(data: EstudianteData)",
+    "actualizarEstudiante(cedula: string, data: EstudianteData)",
+    "borrarEstudiante(cedula: string)",
+    "asignarSeccionEstudiante(estudianteId: string, seccionId: number | null)",
+    "importarEstudiantes(estudiantes: any[])",
+    "agregarDocente(data: DocenteData)",
+    "actualizarDocente(id: number, data: DocenteData)",
+    "borrarDocente(id: number)",
+    "asignarCargaDocente(docenteId: number, seccionId: number, materiaId: string)",
+    "importarDocentes(docentes: any[])",
+    "agregarAnio(formData: FormData)",
+    "agregarSeccion(formData: FormData)",
+    "actualizarSeccion(id: number, formData: FormData)",
+    "agregarMateria(formData: FormData)",
+    "actualizarMateria(id: string, formData: FormData)",
+    "asignarCarga(formData: FormData)",
+    "removerCarga(id: number)",
+    "borrarMateria(id: string)",
+    "guardarAsistenciaDiaria(fecha: Date, datosAsistencia: AsistenciaDiaria[])",
+    "guardarCambiosAsistencia(cambios: CambioAsistencia[])"
+  ]
+}

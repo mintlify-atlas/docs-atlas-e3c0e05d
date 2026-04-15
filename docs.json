@@ -1,122 +1,99 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Proyecto Colegio",
+  "theme": "almond",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#7c7c7c",
+    "light": "#080808",
+    "dark": "#c1c1c1"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://media.brand.dev/4df870fc-c790-482f-9c7a-c7adeafd16f0.png",
+  "logo": {
+    "light": "https://media.brand.dev/f81a25db-0f7d-4772-924d-272c1eadfbb2.svg",
+    "dark": "https://media.brand.dev/c8fbe76b-ded9-43ef-9fa5-5cddf153b7cd.png"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/BapJ40/PROYECTO-COLEGIO"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/BapJ40/PROYECTO-COLEGIO"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "deployment"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Student Management",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "students/overview",
+              "students/add-edit",
+              "students/import",
+              "students/section-assignment"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Teacher Management",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "teachers/overview",
+              "teachers/add-edit",
+              "teachers/import",
+              "teachers/academic-load"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Academic Structure",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "academics/overview",
+              "academics/years-sections",
+              "academics/subjects",
+              "academics/study-plans"
+            ]
+          },
+          {
+            "group": "Attendance",
+            "pages": [
+              "attendance/student-attendance",
+              "attendance/teacher-attendance",
+              "attendance/reports"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Server Actions",
             "pages": [
-              "api-reference/introduction"
+              "reference/student-actions",
+              "reference/teacher-actions",
+              "reference/academic-actions",
+              "reference/attendance-actions"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Data Model",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "reference/database-schema",
+              "reference/configuration"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

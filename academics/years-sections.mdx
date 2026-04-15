@@ -1,0 +1,48 @@
+---
+title: "Manage grade years and associated classroom sections"
+description: "Create the grade years that define your school's academic levels, then add classroom sections within each year for each school period."
+---
+
+Grade years and sections form the top two levels of the academic hierarchy. You must create at least one grade year before you can add sections, and sections must exist before you can assign students or teacher loads to them.
+
+## Grade years (`anios`)
+
+A grade year represents a single level of schooling, such as "1er Año" or "6to Año". Each year has a unique numeric level and a unique display name. You can optionally assign a coordinating teacher to a year.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id_anio` | integer | auto | Auto-incremented primary key. |
+| `nivel` | integer | yes | Unique numeric level (e.g., `1`, `2`, `3`). |
+| `nombre` | string | yes | Unique display name (e.g., `"1er Año"`). Max 50 characters. |
+| `docente_coordinador_id` | integer | no | Optional reference to the coordinating teacher. |
+| `estado` | string | auto | Defaults to `"Activo"`. |
+
+### Adding a grade year
+
+Call `agregarAnio` with `nivel` (integer) and `nombre` (string). Both fields are required. If a year with the same `nivel` or `nombre` already exists, the action returns an error rather than creating a duplicate.
+
+## Sections (`secciones`)
+
+A section is a specific classroom group within a grade year for a given school period. For example, "Section A of 1er Año, 2024–2025" is one section. The letter is always stored in uppercase.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id_seccion` | integer | auto | Auto-incremented primary key. |
+| `anio_id` | integer | yes | The grade year this section belongs to. |
+| `letra_seccion` | char(1) | yes | Single uppercase letter (e.g., `"A"`, `"B"`). |
+| `periodo_escolar` | string | yes | School year string (e.g., `"2024-2025"`). Max 10 characters. |
+| `docente_guia_id` | integer | no | Optional guide teacher for the section. |
+| `aula_asignada` | string | no | Optional classroom identifier (e.g., `"Aula 3"`). Max 50 characters. |
+| `estado` | string | auto | Defaults to `"Activa"`. |
+
+<Note>
+The combination of `(periodo_escolar, anio_id, letra_seccion)` must be unique. You cannot create two sections with the same letter in the same grade year for the same school period.
+</Note>
+
+### Adding a section
+
+Call `agregarSeccion` with `letra_seccion`, `periodo_escolar`, and `anio_id`. Optionally include `docente_guia_id`. The letter is automatically converted to uppercase before saving.
+
+### Updating a section
+
+Call `actualizarSeccion` with the section's `id` and a `FormData` object containing the updated fields. The same uniqueness constraint applies — the updated values must not conflict with an existing section.

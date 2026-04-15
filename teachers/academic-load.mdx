@@ -1,0 +1,54 @@
+---
+title: "How to assign and remove teacher academic load entries"
+description: "Learn how to assign and remove academic loads, linking a teacher to a specific subject within a section using the seccion_docente_materia join table."
+---
+
+An academic load is the assignment of a teacher to teach a specific subject (`materia`) in a specific section (`seccion`). Managing academic loads lets you define exactly who teaches what and where, giving the system the information it needs to connect teachers to attendance records, schedules, and other academic data.
+
+## How assignments are stored
+
+Academic loads are stored in the `seccion_docente_materia` join table, which links three entities:
+
+| Column | References | Description |
+|---|---|---|
+| `docente_id` | `docentes.id` | The assigned teacher |
+| `seccion_id` | `secciones.id_seccion` | The section where the subject is taught |
+| `materia_id` | `materias.id_materia` | The subject being taught |
+
+The table enforces a unique constraint on `(seccion_id, materia_id)`, which means each subject in a given section can only have one teacher assigned to it at a time.
+
+<Note>
+  If a subject already has a teacher assigned in a section, attempting to create a second assignment for the same section–subject pair will fail. The `asignarCargaDocente` action checks for an existing record first and returns an error message before attempting the database write.
+</Note>
+
+## Assign a load
+
+<Steps>
+  <Step title="Open the assignment panel">
+    On the `/gestion-docentes` page, locate the teacher you want to assign a load to and open their academic load section.
+  </Step>
+  <Step title="Select a section and subject">
+    Choose the target section from the available sections list and then choose the subject you want to assign. Both lists are loaded from `secciones` and `materias` respectively.
+  </Step>
+  <Step title="Confirm the assignment">
+    Submit the form. The `asignarCargaDocente(docenteId, seccionId, materiaId)` server action checks whether the assignment already exists. If it does not, the new record is created in `seccion_docente_materia` and the page revalidates.
+  </Step>
+</Steps>
+
+## Remove a load
+
+To remove an existing academic load, locate the assignment in the teacher's load list and click the remove action. The `removerCarga(id)` action deletes the record from `seccion_docente_materia` by its primary key `id`.
+
+<Warning>
+  Removing an academic load is immediate and cannot be undone from the UI. The subject will no longer have an assigned teacher in that section until a new assignment is created.
+</Warning>
+
+## Multiple loads per teacher
+
+A teacher can hold any number of academic loads across different sections and subjects. There is no limit on how many assignments a single teacher can have — the unique constraint only prevents the same section–subject pair from being assigned to more than one teacher.
+
+## Tips
+
+<Tip>
+  Before assigning a load, verify that the subject exists in the selected section's study plan. Assigning a teacher to a subject that is not part of a section's curriculum may cause inconsistencies in reports and attendance records.
+</Tip>

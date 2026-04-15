@@ -1,0 +1,63 @@
+---
+title: "How to add and edit individual teacher records in the system"
+description: "Learn how to register a new teacher and update an existing record, including required fields, optional fields, and unique cedula and email constraints."
+---
+
+You can register a new teacher or update an existing one directly from the `/gestion-docentes` page. The form collects personal and professional information and stores it in the `docentes` table. Unique constraints on `cedula` and `email` prevent duplicate records from being created.
+
+## Field reference
+
+| Field | Required | Type | Notes |
+|---|---|---|---|
+| `cedula` | Required | String | Unique national ID; cannot be changed after creation |
+| `nombre` | Required | String | First name |
+| `apellidos` | Required | String | Last name(s) |
+| `fecha_nacimiento` | Required | Date | Date of birth |
+| `email` | Required | String | Unique email address |
+| `fecha_ingreso` | Required | Date | Date the teacher joined the institution |
+| `genero` | Optional | String | Gender |
+| `telefono` | Optional | String | Phone number |
+| `direccion` | Optional | String | Home address |
+| `titulo_universitario` | Optional | String | Highest academic degree held |
+| `especialidad` | Optional | String | Teaching specialization |
+| `cargo` | Optional | String | Job title or role |
+| `estado` | Optional | String | Defaults to `"Activo"` if not provided |
+
+## Register a new teacher
+
+<Steps>
+  <Step title="Open the registration form">
+    On the `/gestion-docentes` page, click the button to add a new teacher. A form modal will open.
+  </Step>
+  <Step title="Fill in the required fields">
+    Enter values for `cedula`, `nombre`, `apellidos`, `fecha_nacimiento`, `email`, and `fecha_ingreso`. These six fields are mandatory and the form will not submit without them.
+  </Step>
+  <Step title="Fill in optional fields">
+    Optionally provide `genero`, `telefono`, `direccion`, `titulo_universitario`, `especialidad`, and `cargo`. If you leave `estado` blank, the system sets it to `"Activo"` automatically.
+  </Step>
+  <Step title="Submit the form">
+    Click **Save**. The `agregarDocente` server action creates the record in the database and refreshes the teacher list.
+  </Step>
+</Steps>
+
+<Warning>
+  `cedula` and `email` must be unique across all teacher records. If either value already exists in the database, the save operation returns a Prisma `P2002` error and the record is not created. Check for duplicates before resubmitting.
+</Warning>
+
+## Edit an existing teacher
+
+<Steps>
+  <Step title="Select the teacher">
+    Find the teacher in the list on `/gestion-docentes` and click the edit action for that row.
+  </Step>
+  <Step title="Update the fields">
+    Modify any of the editable fields. Note that `cedula` is used as a unique identifier and is not editable after creation.
+  </Step>
+  <Step title="Save changes">
+    Click **Save**. The `actualizarDocente` server action updates the record by the teacher's numeric `id` and revalidates the page.
+  </Step>
+</Steps>
+
+<Note>
+  Updating a teacher's `email` to one that is already in use by another teacher will also trigger a `P2002` unique constraint error.
+</Note>

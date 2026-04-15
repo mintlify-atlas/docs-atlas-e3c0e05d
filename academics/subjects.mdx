@@ -1,0 +1,41 @@
+---
+title: "Manage subjects and the school-wide subject catalog"
+description: "Add, edit, and remove subjects from the catalog, and understand how each subject is automatically linked to a grade year on creation."
+---
+
+Subjects (`materias`) make up the school's subject catalog. Unlike sections, subjects are not tied to a specific school period — they represent the persistent academic disciplines taught at the school. When you add a subject, you specify which grade year it belongs to, and the system automatically creates the study plan entry that formalizes that link.
+
+<Tip>
+Use descriptive, structured codes for `id_materia` — for example `"MAT-101"` for first-year mathematics or `"LEN-201"` for second-year language arts. A consistent naming scheme makes it easy to identify subjects at a glance across the entire system.
+</Tip>
+
+## Subject fields
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `id_materia` | string | yes | Custom admin-defined code. Primary key. Max 15 characters (e.g., `"MAT-101"`). |
+| `nombre` | string | yes | Full subject name (e.g., `"Matemática"`). Max 100 characters. |
+| `nombre_corto` | string | no | Optional short name for compact display (e.g., `"Mat"`). Max 20 characters. |
+| `area_conocimiento` | string | no | Optional knowledge area (e.g., `"Ciencias Exactas"`). Max 50 characters. |
+| `descripcion` | string | no | Optional free-text description of the subject. |
+| `estado` | string | auto | Defaults to `"Activa"`. |
+
+## Adding a subject
+
+Call `agregarMateria` with `id_materia`, `nombre`, and `anio_id`. All three fields are required. Optionally include `nombre_corto`, `area_conocimiento`, and `descripcion`.
+
+The action runs as a database transaction: it creates the subject record in `materias` and immediately creates a `planes_de_estudio` entry linking the subject to the specified grade year. Both writes succeed or both are rolled back — the subject is never saved without its study plan link.
+
+If a subject with the same `id_materia` already exists, the action returns an error without saving anything.
+
+## Updating a subject
+
+Call `actualizarMateria` with the subject's `id_materia` string and updated values for `nombre`, `nombre_corto`, `area_conocimiento`, and/or `descripcion`. The `id_materia` code itself cannot be changed after creation.
+
+## Deleting a subject
+
+Call `borrarMateria` with the subject's `id_materia` string.
+
+<Warning>
+Deleting a subject fails if it is still referenced in a study plan or an active teacher assignment (`seccion_docente_materia`). The system returns a `P2003` foreign key constraint error. Remove all teacher assignments that reference the subject before attempting to delete it.
+</Warning>

@@ -1,0 +1,34 @@
+---
+title: "Academic structure overview for the school's system"
+description: "Understand how grade years, sections, subjects, and study plans connect to form the complete academic skeleton of your school in Proyecto Colegio."
+---
+
+The `/gestion-academica` page is the central hub for building your school's academic skeleton. Every other academic operation — attendance, grades, teacher assignments — depends on the structure you define here. Before enrolling students or recording grades, you must set up the hierarchy of grade years, sections, subjects, and study plans.
+
+## Core entities
+
+The academic structure is built from four interconnected entities that form a strict hierarchy:
+
+- **Grade years (`anios`)** — the top-level grouping, representing each year of schooling (e.g., "1er Año", "2do Año"). Each year has a unique numeric level.
+- **Sections (`secciones`)** — classroom groups within a grade year for a given school period (e.g., Section A of 1er Año, 2024–2025). A section belongs to exactly one grade year.
+- **Subjects (`materias`)** — the subject catalog entries (e.g., "Matemática", "Lengua"). Subjects exist independently and are linked to grade years through study plans.
+- **Study plans (`planes_de_estudio`)** — the join between a subject and a grade year, defining which subjects are taught in each year. Created automatically when you add a subject.
+- **Teacher assignments (`seccion_docente_materia`)** — links a specific teacher (`docente`) to a subject within a specific section, forming the teaching load.
+
+## Relationship flow
+
+First create grade years, then create sections within each year, then add subjects and link them to years via the study plan, then assign teachers to subjects within specific sections.
+
+## Explore the sub-sections
+
+<CardGroup cols={2}>
+  <Card title="Grade years and sections" icon="layer-group" href="/academics/years-sections">
+    Create and manage grade years and the classroom sections within them.
+  </Card>
+  <Card title="Subjects" icon="book-open" href="/academics/subjects">
+    Build and maintain the subject catalog used across all grade years.
+  </Card>
+  <Card title="Study plans" icon="list-check" href="/academics/study-plans">
+    Understand how subjects are linked to grade years through study plans.
+  </Card>
+</CardGroup>

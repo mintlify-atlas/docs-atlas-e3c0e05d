@@ -1,0 +1,48 @@
+---
+title: "Student management overview"
+description: "Explore the student management module in Proyecto Colegio: view, add, edit, import, and assign students to class sections from a single page."
+---
+
+The **Student Management** module lives at `/gestion-estudiantes` and is your central hub for every student-related operation in Proyecto Colegio. From this page you can browse the full student roster, open individual records for editing, bulk-import students from an Excel file, and assign each student to their current class section — all without leaving the interface.
+
+## What data is stored per student
+
+Every student record maps to a row in the `estudiantes` table. The table below lists every field the system stores.
+
+| Field | Type | Notes |
+|---|---|---|
+| `cedula` | `String` | Primary key. Unique national ID number. |
+| `nombre` | `String` | First name(s). |
+| `apellidos` | `String` | Last name(s). |
+| `fecha_nacimiento` | `DateTime` | Date of birth (date only, no time). |
+| `genero` | `String?` | Optional. Gender. |
+| `email` | `String?` | Optional. Must be unique across all students. |
+| `direccion` | `String?` | Optional. Home address. |
+| `estado` | `String` | Defaults to `"Activo"`. |
+| `nombre_representante` | `String?` | Optional. Guardian full name. |
+| `cedula_representante` | `String?` | Optional. Guardian national ID. |
+| `telefono` | `String?` | Optional. Student phone number. |
+| `telefono_representante` | `String?` | Optional. Guardian phone number. |
+| `seccion_actual_id` | `Int?` | Optional. Foreign key linking to the `secciones` table. |
+
+## Section assignment
+
+The `seccion_actual_id` field is a foreign key that points to a row in the `secciones` table. A section belongs to an academic year (`anios`) and carries a school period, a grade level (`nivel`), and a section letter (for example, `"A"`). Setting this field places the student in a specific class for the current school year. Setting it to `null` removes any section assignment. A student can belong to only one section at a time.
+
+## Status field
+
+Every new student record is created with `estado` set to `"Activo"`. You can change this value when editing a student record. The field accepts any short string, but `"Activo"` and `"Inactivo"` are the conventional values used throughout the system.
+
+## Explore the student management pages
+
+<CardGroup cols={2}>
+  <Card title="Add and edit students" icon="pen-to-square" href="/students/add-edit">
+    Learn how to create a new student record or update an existing one, including field requirements and unique-constraint rules.
+  </Card>
+  <Card title="Bulk import from Excel" icon="file-excel" href="/students/import">
+    Import multiple students at once from a formatted Excel file, including date formats and section matching.
+  </Card>
+  <Card title="Assign students to sections" icon="people-group" href="/students/section-assignment">
+    Understand how to link a student to a class section and how to remove or change that assignment.
+  </Card>
+</CardGroup>

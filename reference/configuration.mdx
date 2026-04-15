@@ -1,0 +1,66 @@
+---
+title: "Environment configuration"
+description: "Reference for the environment variables required to run Proyecto Colegio, including DATABASE_URL for PostgreSQL and how Prisma uses it at build and runtime."
+---
+
+Proyecto Colegio requires only one environment variable to run. All database connectivity is handled through Prisma, which reads the connection string from `DATABASE_URL` at startup and during the build process.
+
+## DATABASE_URL
+
+`DATABASE_URL` is a standard PostgreSQL connection string that tells Prisma how to reach your database.
+
+**Format:**
+
+```
+postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+```
+
+**Example:**
+
+```
+DATABASE_URL="postgresql://user:password@localhost:5432/colegio_db"
+```
+
+| Segment | Description |
+|---|---|
+| `USER` | PostgreSQL role with read/write access to the database. |
+| `PASSWORD` | Password for that role. |
+| `HOST` | Hostname or IP address of the database server. |
+| `PORT` | Port PostgreSQL listens on. Default is `5432`. |
+| `DATABASE` | Name of the database to connect to. |
+
+<Warning>
+  `DATABASE_URL` must be set in your environment (or in a `.env` file at the project root) before running `npm run dev` or `npm run build`. Without it, Prisma cannot generate the client or connect to the database, and both commands will fail.
+</Warning>
+
+## How Prisma uses DATABASE_URL
+
+The `datasource` block in `prisma/schema.prisma` reads the variable directly:
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+Two scripts in `package.json` depend on this variable being set:
+
+- **`postinstall`** — runs `prisma generate` automatically after `npm install`. This generates the Prisma Client from your schema. It does not require a live database connection but it does require the variable to be present.
+- **Build command** — runs `prisma generate && next build`. Both steps require `DATABASE_URL` to be set. `prisma generate` needs it for the schema, and Next.js Server Actions call Prisma at build time for static generation.
+
+## Local development
+
+Create a `.env` file in the project root and add your connection string:
+
+```bash
+DATABASE_URL="postgresql://user:password@localhost:5432/colegio_db"
+```
+
+Prisma and Next.js automatically load `.env` files in local development. Do not commit this file to version control if it contains real credentials.
+
+## Production on Vercel
+
+<Note>
+  For production deployments on Vercel, add `DATABASE_URL` as an environment variable in your Vercel project settings under **Settings → Environment Variables**. Vercel injects it into both the build environment and the serverless function runtime, so no `.env` file is needed.
+</Note>

@@ -1,0 +1,162 @@
+---
+title: "Database schema reference"
+description: "Complete reference for the PostgreSQL database schema used by Proyecto Colegio, covering all nine Prisma models and their fields, types, and constraints."
+---
+
+Proyecto Colegio uses a PostgreSQL database managed through Prisma ORM. The schema is defined in `prisma/schema.prisma` and contains nine models that cover academic structure, student and teacher management, and attendance tracking. The sections below document each model's fields, types, and notable constraints.
+
+---
+
+## anios
+
+Grade years (e.g. "1er Año", "5to Año"). Every section and study plan must belong to one of these entries.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id_anio` | `Int` (PK, autoincrement) | Yes | Auto-generated primary key. |
+| `nivel` | `Int` (unique) | Yes | Numeric grade level. Must be unique. |
+| `nombre` | `VarChar(50)` (unique) | Yes | Display name. Must be unique. |
+| `docente_coordinador_id` | `Int` (FK → `docentes.id`) | No | Optional reference to the coordinating teacher. |
+| `estado` | `VarChar(20)` | Yes | Defaults to `"Activo"`. |
+
+---
+
+## estudiantes
+
+Student records. The student's national ID (`cedula`) serves as the primary key, so no separate auto-increment column is used.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `cedula` | `VarChar(15)` (PK) | Yes | National ID. Primary key. |
+| `nombre` | `VarChar(100)` | Yes | First name(s). |
+| `apellidos` | `VarChar(100)` | Yes | Last name(s). |
+| `fecha_nacimiento` | `Date` | Yes | Date of birth. |
+| `genero` | `VarChar(20)` | No | Gender. |
+| `email` | `VarChar(255)` (unique) | No | Email address. Unique if provided. |
+| `direccion` | `Text` | No | Home address. |
+| `estado` | `VarChar(20)` | Yes | Defaults to `"Activo"`. |
+| `nombre_representante` | `VarChar(200)` | No | Guardian's full name. |
+| `cedula_representante` | `VarChar(15)` | No | Guardian's national ID. |
+| `seccion_actual_id` | `Int` (FK → `secciones.id_seccion`) | No | Current section assignment. |
+| `telefono` | `VarChar(20)` | No | Student's phone number. |
+| `telefono_representante` | `VarChar(20)` | No | Guardian's phone number. |
+
+---
+
+## docentes
+
+Teacher records. Both `cedula` and `email` carry unique constraints.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `Int` (PK, autoincrement) | Yes | Auto-generated primary key. |
+| `nombre` | `VarChar(100)` | Yes | First name(s). |
+| `apellidos` | `VarChar(100)` | Yes | Last name(s). |
+| `cedula` | `VarChar(15)` (unique) | Yes | National ID. Must be unique. |
+| `fecha_nacimiento` | `Date` | Yes | Date of birth. |
+| `genero` | `VarChar(20)` | No | Gender. |
+| `email` | `VarChar(255)` (unique) | Yes | Email address. Must be unique. |
+| `telefono` | `VarChar(20)` | No | Phone number. |
+| `direccion` | `Text` | No | Home address. |
+| `titulo_universitario` | `VarChar(255)` | No | University degree title. |
+| `especialidad` | `VarChar(255)` | No | Academic specialisation. |
+| `fecha_ingreso` | `Date` | Yes | Date joined the school. |
+| `cargo` | `VarChar(100)` | No | Job title at the school. |
+| `estado` | `VarChar(20)` | Yes | Defaults to `"Activo"`. |
+
+---
+
+## materias
+
+Subjects available in the school. The subject code (`id_materia`) is the primary key.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id_materia` | `VarChar(15)` (PK) | Yes | Short unique code (e.g. `"MAT-101"`). |
+| `nombre` | `VarChar(100)` | Yes | Full subject name. |
+| `nombre_corto` | `VarChar(20)` | No | Abbreviated name. |
+| `area_conocimiento` | `VarChar(50)` | No | Knowledge area (e.g. `"Ciencias Exactas"`). |
+| `descripcion` | `Text` | No | Free-text description. |
+| `estado` | `VarChar(20)` | Yes | Defaults to `"Activa"`. |
+
+---
+
+## secciones
+
+Classroom sections. Each section belongs to one academic year and one school period. The combination of `periodo_escolar`, `anio_id`, and `letra_seccion` must be unique.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id_seccion` | `Int` (PK, autoincrement) | Yes | Auto-generated primary key. |
+| `periodo_escolar` | `VarChar(10)` | Yes | School year (e.g. `"2024-2025"`). |
+| `anio_id` | `Int` (FK → `anios.id_anio`) | Yes | Academic year this section belongs to. |
+| `letra_seccion` | `Char(1)` | Yes | Section letter (e.g. `"A"`). Stored as uppercase. |
+| `docente_guia_id` | `Int` (FK → `docentes.id`) | No | Homeroom teacher. Optional. |
+| `aula_asignada` | `VarChar(50)` | No | Room or classroom identifier. |
+| `estado` | `VarChar(20)` | Yes | Defaults to `"Activa"`. |
+
+**Unique constraint:** `(periodo_escolar, anio_id, letra_seccion)`
+
+---
+
+## planes_de_estudio
+
+Study plan entries that link a subject to an academic year and optionally record weekly hours. The combination of `anio_id` and `materia_id` must be unique.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `Int` (PK, autoincrement) | Yes | Auto-generated primary key. |
+| `anio_id` | `Int` (FK → `anios.id_anio`) | Yes | Academic year. Cascades on delete. |
+| `materia_id` | `VarChar(15)` (FK → `materias.id_materia`) | Yes | Subject. Cascades on delete. |
+| `horas_semanales` | `Int` | No | Weekly hours allocated to the subject. |
+
+**Unique constraint:** `(anio_id, materia_id)`
+
+---
+
+## seccion_docente_materia
+
+Join table that assigns a teacher to teach a specific subject in a specific section. Each subject in a section can have at most one assigned teacher.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `Int` (PK, autoincrement) | Yes | Auto-generated primary key. |
+| `seccion_id` | `Int` (FK → `secciones.id_seccion`) | Yes | Section. Cascades on delete. |
+| `docente_id` | `Int` (FK → `docentes.id`) | Yes | Teacher. Cascades on delete. |
+| `materia_id` | `VarChar(15)` (FK → `materias.id_materia`) | Yes | Subject. Cascades on delete. |
+
+**Unique constraint:** `(seccion_id, materia_id)`
+
+---
+
+## asistencias_diarias
+
+Daily attendance header record. One row per person per date. The `status` field stores the general daily status as a single character.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `Int` (PK, autoincrement) | Yes | Auto-generated primary key. |
+| `persona_cedula` | `VarChar(15)` | Yes | National ID of the student or teacher. |
+| `fecha` | `Date` | Yes | Date of the attendance record (stored as UTC). |
+| `status` | `Char(1)` | Yes | Daily status: `"P"` present, `"A"` absent, `"J"` justified, `"T"` late. |
+| `observacion` | `Text` | No | General observation for the day. |
+
+**Unique constraint:** `(persona_cedula, fecha)`
+
+---
+
+## asistencias_detalles
+
+Per-subject attendance detail linked to a daily attendance header. One row per subject per attendance day per person.
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `id` | `Int` (PK, autoincrement) | Yes | Auto-generated primary key. |
+| `asistencia_diaria_id` | `Int` (FK → `asistencias_diarias.id`) | Yes | Parent attendance header. Cascades on delete. |
+| `materia_id` | `VarChar(15)` (FK → `materias.id_materia`) | Yes | Subject. |
+| `status` | `Char(1)` | Yes | Subject-level status: `"P"`, `"A"`, `"J"`, or `"T"`. |
+| `observacion` | `Text` | No | Subject-specific observation. |
+
+<Note>
+  When attendance is saved or updated via the server actions, all existing `asistencias_detalles` rows for a given day are deleted and recreated. This means the detail rows never need to be updated individually.
+</Note>

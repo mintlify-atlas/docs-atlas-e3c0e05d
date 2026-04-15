@@ -1,0 +1,43 @@
+---
+title: "Export student and teacher attendance to PDF and Excel"
+description: "Export attendance records to PDF or Excel directly from the browser. No server endpoint required — reports are generated client-side using jsPDF and xlsx."
+---
+
+Proyecto Colegio lets you export attendance records to PDF and Excel without any server-side processing. Both formats are generated entirely in the browser: the page collects the attendance data already loaded into the view, formats it using a client-side library, and triggers a file download. No additional configuration or server endpoint is needed.
+
+## Supported export formats
+
+| Format | Library | File extension |
+|---|---|---|
+| PDF | jsPDF + jspdf-autotable | `.pdf` |
+| Excel | xlsx | `.xlsx` |
+
+## PDF export
+
+PDF files are produced using [jsPDF](https://github.com/parallax/jsPDF) with the [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) plugin. The `autoTable` plugin formats the attendance data as a styled table with column headers, row borders, and pagination — no manual layout code is required.
+
+## Excel export
+
+Excel files are produced using the [xlsx](https://sheetjs.com/) library. The library converts the attendance data into a workbook with one or more sheets and writes it as a `.xlsx` file that opens in any spreadsheet application.
+
+## What you can export
+
+You can export attendance records from both the student and teacher attendance views. Exports reflect the data currently visible in the view, so applying filters before exporting is the most reliable way to scope the output to exactly the period or group you need.
+
+Exportable data includes:
+
+- Student attendance records for a given date range or month
+- Teacher attendance records for a given date range or month
+- Status codes (P, A, J, T) and any recorded observations
+
+## Exporting from the attendance views
+
+Export controls are embedded directly in the attendance views — there is no separate export page. Look for the PDF or Excel export button within `/asistencia-estudiantil` or `/asistencia-docentes` after loading the records you want to download.
+
+<Note>
+Exports are processed entirely in the browser. Large datasets — such as a full year of attendance for a large school — may take a moment to generate before the download begins. This is expected behavior and does not indicate an error.
+</Note>
+
+<Tip>
+Filter by section or date range before exporting. Narrowing the data to the specific group and period you need keeps file sizes small and makes the exported report easier to read.
+</Tip>
